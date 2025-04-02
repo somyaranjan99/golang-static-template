@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github/somyaranjan99/basic-go-project/cmd/web/middleware"
+	"github/somyaranjan99/basic-go-project/internal/helpers"
 	"github/somyaranjan99/basic-go-project/pkg/config"
 	"github/somyaranjan99/basic-go-project/pkg/handlers"
 	"github/somyaranjan99/basic-go-project/pkg/models"
@@ -18,6 +19,8 @@ import (
 )
 
 var app config.AppConfig
+var Infolog *log.Logger
+var ErrorLog *log.Logger
 
 func main() {
 	r, err := Run()
@@ -41,8 +44,12 @@ func Run() (http.Handler, error) {
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	sessionManager.Cookie.Secure = true
 	app.Session = sessionManager
-
+	helpers.NewErrorLogs(&app)
 	repos := handlers.NewRepo(&app)
+	Infolog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	app.Infolog = Infolog
+	ErrorLog = log.New(os.Stdout, "Erro\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app.ErrorLog = ErrorLog
 	r := chi.NewRouter()
 	r.Use(middleware.MiddleLogger)
 	r.Use(middleware.NoSurf)
