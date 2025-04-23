@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"github/somyaranjan99/basic-go-project/pkg/config"
 	"net/http"
 
@@ -23,7 +22,6 @@ func NewSessionLoad(app *config.AppConfig) func(next http.Handler) http.Handler 
 
 func MiddleLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("looging middleware")
 		next.ServeHTTP(w, r)
 	})
 }

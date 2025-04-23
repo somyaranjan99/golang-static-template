@@ -4,7 +4,9 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github/somyaranjan99/basic-go-project/cmd/web/middleware"
+	"github/somyaranjan99/basic-go-project/internal/condriver"
 	"github/somyaranjan99/basic-go-project/internal/helpers"
+	"github/somyaranjan99/basic-go-project/internal/reservationtypes"
 	"github/somyaranjan99/basic-go-project/pkg/config"
 	"github/somyaranjan99/basic-go-project/pkg/handlers"
 	"github/somyaranjan99/basic-go-project/pkg/models"
@@ -24,6 +26,18 @@ var ErrorLog *log.Logger
 
 func main() {
 	r, err := Run()
+	//	defer close(app.MailChan)
+
+	// msg := models.MailData{
+	// 	To:      "som@gmial.com",
+	// 	From:    "ran@gm.com",
+	// 	Subject: "Some subject",
+	// 	Content: "Hello mail",
+	// }
+	// mailServer := sendmail.NewMAilRepo(&app)
+	// mailServer.ListenForMail()
+
+	// app.MailChan <- msg
 	if err != nil {
 		log.Fatal("Error while running server")
 		return
@@ -35,6 +49,9 @@ func main() {
 }
 func Run() (http.Handler, error) {
 	gob.Register(models.Reservation{})
+	gob.Register(reservationtypes.User{})
+	mailChan := make(chan models.MailData)
+	app.MailChan = mailChan
 	app := config.AppConfig{}
 	sessionManager := scs.New()
 	sessionManager.Lifetime = 3 * time.Hour
@@ -45,7 +62,12 @@ func Run() (http.Handler, error) {
 	sessionManager.Cookie.Secure = true
 	app.Session = sessionManager
 	helpers.NewErrorLogs(&app)
-	repos := handlers.NewRepo(&app)
+	db, err := condriver.Dbconn()
+	if err != nil {
+		log.Fatal(err)
+	}
+	repos := handlers.NewRepo(&app, db)
+	// dbrepo.NewRepositoryDBHandler(&app, db)
 	Infolog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	app.Infolog = Infolog
 	ErrorLog = log.New(os.Stdout, "Erro\t", log.Ldate|log.Ltime|log.Lshortfile)
@@ -66,6 +88,15 @@ func Run() (http.Handler, error) {
 	r.Get("/make-reservation", repos.Reservation)
 	r.Post("/make-reservation", repos.PostReservation)
 	r.Get("/reservation-summary", repos.ReservationSummary)
+	r.Get("/choose-room/{id}", repos.ChooseRoom)
+	r.Get("/user/login", repos.Login)
+	r.Post("/user/login", repos.PostLogin)
+	r.Get("/user/signup", repos.UserSignup)
+	r.Post("/user/signup", repos.PostUserSignup)
+	// r.Route("/admin",func(r chi.Router) {
+
+	// })
+
 	projectRoot, err := filepath.Abs(filepath.Join("..", "..")) // Goes up from cmd/web
 	if err != nil {
 		log.Fatal(err)
